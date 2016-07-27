@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
+	// Use our custom log.
+	_ "log"
 	"net/http"
 	"strings"
 )

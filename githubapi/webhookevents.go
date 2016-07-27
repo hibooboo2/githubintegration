@@ -2,7 +2,7 @@ package githubapi
 
 import (
 	"errors"
-	"log"
+	_ "log"
 )
 
 // WebHookEvents ...

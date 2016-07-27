@@ -1,7 +1,8 @@
 package githubapi
 
 import (
-	"log"
+	// Use our custom log
+	_ "log"
 	"os"
 )
 
