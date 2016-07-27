@@ -13,7 +13,6 @@ import (
 
 // PullRequest ...
 type PullRequest struct {
-	Number int              `json:"number"`
 	Body   string           `json:"body"`
 	Merged bool             `json:"merged"`
 	Base   *PullRequestBase `json:"base"`
@@ -33,7 +32,8 @@ const (
 	repoRegex = `\\s([a-zA-Z-]+/[a-zA-Z0-9-]+)?#([0-9]+)`
 )
 
-var refRegex = regexp.MustCompile("[Tt]est(ing|ed|s)?" + repoRegex)
+var testRefRegex = regexp.MustCompile("[Tt]est(ing|ed|s)?" + repoRegex)
+var refRepoRegex = regexp.MustCompile(repoRegex)
 
 // Get ... Get a pr from the api.
 func (pr *PullRequest) Get() (err error) {
@@ -63,23 +63,24 @@ func (pr *PullRequest) Get() (err error) {
 	}
 	if !strings.HasSuffix(pr.HTMLURL, fmt.Sprintf("pull/%d", pr.Number)) {
 		log.Println("Not PullRequest: ", pr)
-		return errIsNotPR
+		return ErrIsNotPR
 	}
-	return pr.Issue.Get()
+	err = pr.Issue.Get()
+	return err
 }
 
 // SetIssuesToTest ... Called when a pr is closed. Used to label any issues as testing/ to test
-func (pr *PullRequest) SetIssuesToTest(repo *Repo) (err error) {
+func (pr *PullRequest) SetIssuesToTest() (err error) {
 	if pr.State != "closed" || !pr.Merged {
 		return
 	}
-	matches := refRegex.FindAllStringSubmatch(" "+pr.Body, 200)
+	matches := testRefRegex.FindAllStringSubmatch(" "+pr.Body, 200)
 	log.Println(pr.Body)
 	log.Println(matches)
 	issuesTOUpdate := make(map[string]Issue)
 	for _, x := range matches {
 		if x[2] == "" {
-			x[2] = repo.FullName
+			x[2] = pr.Base.Repo.FullName
 		}
 		log.Println(x, len(x))
 		issue := Issue{URL: fmt.Sprintf(issueURL, x[2], x[3])}
@@ -99,7 +100,38 @@ func (pr *PullRequest) SetIssuesToTest(repo *Repo) (err error) {
 	return
 }
 
+// ReferencedIssues ...
+func (pr *PullRequest) ReferencedIssues() (issues map[int]Issue, err error) {
+	err = pr.Get()
+	if err != nil && !pr.IsPr && err != ErrIsNotPR {
+		return
+	}
+	matches := refRepoRegex.FindAllStringSubmatch(" "+pr.Body, 200)
+	issues = make(map[int]Issue)
+	for _, x := range matches {
+		if x[1] == "" {
+			x[1] = pr.Base.Repo.FullName
+		}
+		log.Println(x, len(x))
+		issue := Issue{URL: fmt.Sprintf(issueURL, x[1], x[2])}
+		issues[issue.Number] = issue
+	}
+	for _, issue := range issues {
+		err = issue.Get()
+		if err != nil && !issue.IsPr {
+			issues = make(map[int]Issue)
+			return
+		}
+	}
+	return
+}
+
 // ReferencesAnIssue ...
-func (pr *PullRequest) ReferencesAnIssue() bool {
-	return false
+func (pr *PullRequest) ReferencesAnIssue() (bool, error) {
+	issues, err := pr.ReferencedIssues()
+	if err != nil {
+		// Errored seeing if pr references an Issue.
+		return false, err
+	}
+	return len(issues) > 0, nil
 }

@@ -1,5 +1,17 @@
 package githubapi
 
-const apiToken = `be3dcdc9ea80913d610ed2689154d73bbceee4b1`
+import (
+	"log"
+	"os"
+)
+
+var apiToken = os.Getenv("GITHUB_API_TOKEN")
 
 const apiURL = `https://api.github.com`
+
+func init() {
+	if apiToken == "" {
+		log.Println("Need GITHUB_API_TOKEN defined as an environment variable.")
+		os.Exit(1)
+	}
+}

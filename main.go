@@ -23,13 +23,14 @@ func webHookServer() {
 		hh := &api.WebHookEvents{}
 		this.Hooks = hh
 		hh.ClosePr = func(evt api.WebhookEvent) error {
-			err := evt.PullRequest.SetIssuesToTest(evt.Repo)
+			err := evt.PullRequest.SetIssuesToTest()
 			if err != nil {
 				return err
 			}
 			return nil
 		}
-		// hh.OpenPr = statusCheck
+		hh.OpenPr = statusCheck
+		hh.EditPr = statusCheck
 
 		r := svc.Resource(this)
 		r.POST("/", this.HandleWebHookServer)

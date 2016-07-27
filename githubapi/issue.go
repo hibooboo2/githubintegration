@@ -22,11 +22,15 @@ type Issue struct {
 
 const issueURL = apiURL + `/repos/%s/issues/%s`
 
-var errIsNotIssue = errors.New("This is not an Issue")
-var errIsNotPR = errors.New("This is not a PR")
+// ErrIsNotIssue ...
+var ErrIsNotIssue = errors.New("This is not an Issue")
+
+// ErrIsNotPR ...
+var ErrIsNotPR = errors.New("This is not a PR")
 
 // Get ...
 func (i *Issue) Get() (err error) {
+	log.Println("Start Number:", i.Number, " HTML:", i.HTMLURL, " URL:", i.URL)
 	req, err := http.NewRequest("GET", i.URL, nil)
 	if err != nil {
 		return
@@ -54,7 +58,8 @@ func (i *Issue) Get() (err error) {
 	}
 	if !strings.HasSuffix(i.HTMLURL, fmt.Sprintf("issues/%d", i.Number)) {
 		if !strings.HasSuffix(i.HTMLURL, fmt.Sprintf("pull/%d", i.Number)) {
-			return errIsNotIssue
+			log.Println("Is not issue or pr: ", i.HTMLURL, " Number: ", i.Number)
+			return ErrIsNotIssue
 		}
 		i.IsPr = true
 	}
