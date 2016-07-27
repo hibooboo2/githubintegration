@@ -1,14 +1,14 @@
 package githubapi
 
-import "log"
+import stdlog "log"
 
 type logger struct {
-	debug log.Logger
-	info  log.Logger
-	std   log.Logger
-	warn  log.Logger
-	err   log.Logger
-	fatal log.Logger
+	debug *stdlog.Logger
+	info  *stdlog.Logger
+	std   *stdlog.Logger
+	warn  *stdlog.Logger
+	err   *stdlog.Logger
+	fatal *stdlog.Logger
 	Level logLevel
 }
 
@@ -45,4 +45,11 @@ func (l *logger) Print(v ...interface{}) {
 	if l.Level <= Std {
 		l.std.Print(v)
 	}
+}
+
+func newLogger() *logger {
+	aLogger := &logger{
+		std: &stdlog.Logger{},
+	}
+	return aLogger
 }
