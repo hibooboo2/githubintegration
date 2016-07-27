@@ -121,26 +121,28 @@ func (pr *PullRequest) ReferencedIssues() (issues map[int]Issue, err error) {
 		return
 	}
 	for _, x := range matches {
-
 		if x[1] == "" {
 			x[1] = pr.Base.Repo.FullName
 		}
-		log.Warnln("x from matches: ", x, len(x))
+		log.Debugln("x from matches: ", x, len(x))
 		issue := Issue{URL: fmt.Sprintf(issueURL, x[1], x[2])}
 		issue.Number, err = strconv.Atoi(x[2])
+		if _, there := issues[issue.Number]; there {
+			break
+		}
 		if err != nil {
 			log.Debugln(err)
 			issues = make(map[int]Issue)
 			return
 		}
-		issues[issue.Number] = issue
-	}
-	for _, issue := range issues {
 		err = issue.Get()
 		if err != nil && !issue.IsPr {
 			issues = make(map[int]Issue)
 			log.Debug(err)
 			return
+		}
+		if !issue.IsPr {
+			issues[issue.Number] = issue
 		}
 	}
 	return

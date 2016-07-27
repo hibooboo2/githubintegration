@@ -67,8 +67,11 @@ func statusCheck(evt api.WebhookEvent) error {
 	// }()
 	issues, err := evt.PullRequest.ReferencedIssues()
 	log.Println("Checking references an issue:", len(issues), " Error: ", err)
+	if err != nil {
+		return c.CreateStatus("error", "http://github.jhrb.us", "github/jhrb/integration", "Errored checking issue references: "+err.Error())
+	}
 	if len(issues) > 0 && err == nil {
 		return c.CreateStatus("success", "http://github.jhrb.us", "github/jhrb/integration", fmt.Sprintf("Issues referenced: %d", len(issues)))
 	}
-	return c.CreateStatus("failure", "http://github.jhrb.us", "github/jhrb/integration", "Pr must reference an issue: "+err.Error())
+	return c.CreateStatus("failure", "http://github.jhrb.us", "github/jhrb/integration", "Pr must reference an issue")
 }
