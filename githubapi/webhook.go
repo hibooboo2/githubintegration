@@ -23,6 +23,7 @@ func (evt *WebhookEvent) Type() string {
 	case evt.Issue != nil:
 		return issueType
 	default:
+		log.Warn("Unknown type for an event:", evt.Action)
 		return "unknown"
 	}
 }

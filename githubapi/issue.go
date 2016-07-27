@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
+	// Use custom log
+	_ "log"
 	"net/http"
 	"strings"
 )
@@ -33,6 +34,7 @@ func (i *Issue) Get() (err error) {
 	log.Println("Start Number:", i.Number, " HTML:", i.HTMLURL, " URL:", i.URL)
 	req, err := http.NewRequest("GET", i.URL, nil)
 	if err != nil {
+		log.Debug(err)
 		return
 	}
 
@@ -41,24 +43,27 @@ func (i *Issue) Get() (err error) {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Debug(err)
 		return
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
+		log.Debug(err)
 		return
 	}
 	err = json.Unmarshal(body, i)
 	if err != nil {
-		log.Println(res.StatusCode)
-		log.Println(res)
-		log.Println(string(body))
+		log.Debug(err)
+		log.Debugln(res.StatusCode)
+		log.Debugln(res)
+		log.Debugln(string(body))
 		return
 	}
 	if !strings.HasSuffix(i.HTMLURL, fmt.Sprintf("issues/%d", i.Number)) {
 		if !strings.HasSuffix(i.HTMLURL, fmt.Sprintf("pull/%d", i.Number)) {
-			log.Println("Is not issue or pr: ", i.HTMLURL, " Number: ", i.Number)
+			log.Debugln("Is not issue or pr: ", i.HTMLURL, " Number: ", i.Number)
 			return ErrIsNotIssue
 		}
 		i.IsPr = true
@@ -73,6 +78,7 @@ func (i *Issue) AddLabel(add string) error {
 	}
 	err := i.Get()
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	labels.Labels = []string{add}
@@ -81,6 +87,7 @@ func (i *Issue) AddLabel(add string) error {
 	}
 	payLd, err := json.Marshal(&labels)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	payload := strings.NewReader(string(payLd))
@@ -92,11 +99,13 @@ func (i *Issue) AddLabel(add string) error {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	defer res.Body.Close()
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	return nil
@@ -136,25 +145,25 @@ func (i *Issue) SetWaffleStatus(status string) error {
 	}
 	err := i.Get()
 	if err != nil {
-		log.Println(err)
+		log.Debugln(err)
 		return err
 	}
 	labels.Labels = []string{string(status)}
-	log.Println("Labels before: ")
+	log.Debug("Labels before: ")
 	for _, label := range i.Labels {
-		log.Printf("$     label: '%s'", label.Name)
+		log.Debug("$     label: '%s'", label.Name)
 	}
 	for _, label := range i.Labels {
 		if IsWaffleStatus(label.Name) {
-			log.Println("Dropping ", label.Name)
+			log.Debug("Dropping ", label.Name)
 			break
 		}
-		log.Println("Keeping ", label.Name)
+		log.Debug("Keeping ", label.Name)
 		labels.Labels = append(labels.Labels, label.Name)
 	}
-	log.Println("Labels after: ")
+	log.Debug("Labels after: ")
 	for _, label := range labels.Labels {
-		log.Printf("$     label: '%s'", label)
+		log.Debug("$     label: '%s'", label)
 	}
 	payLd, err := json.Marshal(&labels)
 	if err != nil {
@@ -166,14 +175,15 @@ func (i *Issue) SetWaffleStatus(status string) error {
 
 	req.Header.Add("authorization", "token "+apiToken)
 	req.Header.Add("content-type", "application/json")
-
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	defer res.Body.Close()
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	return nil

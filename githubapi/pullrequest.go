@@ -9,6 +9,7 @@ import (
 	_ "log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -34,7 +35,7 @@ const (
 )
 
 var testRefRegex = regexp.MustCompile("[Tt]est(ing|ed|s)?" + repoRegex)
-var refRepoRegex = regexp.MustCompile(repoRegex)
+var refRepoRegex = regexp.MustCompile("\\s([a-zA-Z-]+/[a-zA-Z0-9-]+)?#([0-9]+)")
 
 // Get ... Get a pr from the api.
 func (pr *PullRequest) Get() (err error) {
@@ -76,14 +77,14 @@ func (pr *PullRequest) SetIssuesToTest() (err error) {
 		return
 	}
 	matches := testRefRegex.FindAllStringSubmatch(" "+pr.Body, 200)
-	log.Println(pr.Body)
-	log.Println(matches)
+	log.Debug(pr.Body)
+	log.Debugln(matches)
 	issuesTOUpdate := make(map[string]Issue)
 	for _, x := range matches {
 		if x[2] == "" {
 			x[2] = pr.Base.Repo.FullName
 		}
-		log.Println(x, len(x))
+		log.Debug(x, len(x))
 		issue := Issue{URL: fmt.Sprintf(issueURL, x[2], x[3])}
 		issuesTOUpdate[issue.URL] = issue
 	}
@@ -91,36 +92,54 @@ func (pr *PullRequest) SetIssuesToTest() (err error) {
 	for _, issue := range issuesTOUpdate {
 		err := issue.SetWaffleStatus(string(testingStatus))
 		if !issue.IsPr && err != nil {
-			log.Println("Errored when updating label for: ", issue.Number, " Error: ", err.Error())
+			log.Debugln("Errored when updating label for: ", issue.Number, " Error: ", err.Error())
 			errored = true
 		}
 	}
 	if errored {
 		err = errors.New("Failed to update one or more issue labels.")
+		log.Debug(err)
 	}
 	return
 }
 
 // ReferencedIssues ...
 func (pr *PullRequest) ReferencedIssues() (issues map[int]Issue, err error) {
+	issues = make(map[int]Issue)
+	log.Debugln("Pr is:", pr)
 	err = pr.Get()
 	if err != nil && !pr.IsPr && err != ErrIsNotPR {
+		log.Debug(err)
 		return
 	}
 	matches := refRepoRegex.FindAllStringSubmatch(" "+pr.Body, 200)
-	issues = make(map[int]Issue)
+	log.Debugln("Body are: ", pr.Body)
+	log.Debugln("Matches are: ", matches)
+	if len(matches) == 0 {
+		err = errors.New("No issue refs found")
+		log.Debugln(err)
+		return
+	}
 	for _, x := range matches {
+
 		if x[1] == "" {
 			x[1] = pr.Base.Repo.FullName
 		}
-		log.Println(x, len(x))
+		log.Warnln("x from matches: ", x, len(x))
 		issue := Issue{URL: fmt.Sprintf(issueURL, x[1], x[2])}
+		issue.Number, err = strconv.Atoi(x[2])
+		if err != nil {
+			log.Debugln(err)
+			issues = make(map[int]Issue)
+			return
+		}
 		issues[issue.Number] = issue
 	}
 	for _, issue := range issues {
 		err = issue.Get()
 		if err != nil && !issue.IsPr {
 			issues = make(map[int]Issue)
+			log.Debug(err)
 			return
 		}
 	}
@@ -129,8 +148,10 @@ func (pr *PullRequest) ReferencedIssues() (issues map[int]Issue, err error) {
 
 // ReferencesAnIssue ...
 func (pr *PullRequest) ReferencesAnIssue() (bool, error) {
+	log.Debugln("Called ReferencesAnIssue")
 	issues, err := pr.ReferencedIssues()
 	if err != nil {
+		log.Debug(err)
 		// Errored seeing if pr references an Issue.
 		return false, err
 	}

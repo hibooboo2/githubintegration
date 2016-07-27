@@ -29,6 +29,7 @@ func (c *Commit) CreateStatus(status, targetURL, context, description string) er
 	case "error":
 	case "failure":
 	default:
+		log.Debug("Invalid status for a commit status create passed: ", status)
 		return errors.New("Invalid Status provided")
 	}
 	payload := strings.NewReader(fmt.Sprintf(`
@@ -41,6 +42,7 @@ func (c *Commit) CreateStatus(status, targetURL, context, description string) er
 
 	req, err := http.NewRequest("POST", fmt.Sprintf(statusURL, c.RepoFullName, c.Sha), payload)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 
@@ -49,11 +51,13 @@ func (c *Commit) CreateStatus(status, targetURL, context, description string) er
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	defer res.Body.Close()
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
+		log.Debug(err)
 		return err
 	}
 	return nil

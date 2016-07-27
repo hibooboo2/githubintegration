@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/codehack/go-relax"
 	api "github.com/hibooboo2/githubissues/githubapi"
@@ -65,9 +65,10 @@ func statusCheck(evt api.WebhookEvent) error {
 	// 	time.Sleep(time.Second * 10)
 	// 	c.CreateStatus("success", "http://github.jhrb.us", "github/jhrb/integration", "Pr just opened")
 	// }()
-	ok, err := evt.PullRequest.ReferencesAnIssue()
-	if ok && err == nil {
-		return c.CreateStatus("success", "http://github.jhrb.us", "github/jhrb/integration", "Status is pending... "+time.Now().String())
+	issues, err := evt.PullRequest.ReferencedIssues()
+	log.Println("Checking references an issue:", len(issues), " Error: ", err)
+	if len(issues) > 0 && err == nil {
+		return c.CreateStatus("success", "http://github.jhrb.us", "github/jhrb/integration", fmt.Sprintf("Issues referenced: %d", len(issues)))
 	}
 	return c.CreateStatus("failure", "http://github.jhrb.us", "github/jhrb/integration", "Pr must reference an issue: "+err.Error())
 }

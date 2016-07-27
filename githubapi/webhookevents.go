@@ -2,6 +2,7 @@ package githubapi
 
 import (
 	"errors"
+	// Use custom log. Must overide
 	_ "log"
 )
 
@@ -27,6 +28,7 @@ var ErrUnhandledEvent = errors.New("Unhandled event recieved to hook Handlered. 
 
 // HandleWebHookEvents Handle calling function for a webhookEvent...
 func (e *WebHookEvents) HandleWebHookEvents(evt WebhookEvent) (err error) {
+	log.Debugln("Recieved: ", evt.Type(), evt.Action)
 	switch evt.Type() {
 	case prType:
 		switch evt.Action {
@@ -76,6 +78,6 @@ func (e *WebHookEvents) HandleWebHookEvents(evt WebhookEvent) (err error) {
 		}
 	}
 	err = ErrUnhandledEvent
-	log.Println("Unhandled: ", evt.Type(), evt.Action)
+	log.Warn("Unhandled: ", evt.Type(), evt.Action)
 	return
 }

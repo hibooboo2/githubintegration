@@ -34,23 +34,27 @@ func (r *Repo) Get() (err error) {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Debug(err)
 		return
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
+		log.Debug(err)
 		return
 	}
 	err = json.Unmarshal(body, r)
 	if err != nil {
-		log.Println(res.StatusCode)
-		log.Println(res)
-		log.Println(string(body))
+		log.Debug(err)
+		log.Debugln(res.StatusCode)
+		log.Debugln(res)
+		log.Debugln(string(body))
 		return
 	}
 	if !strings.HasSuffix(r.HTMLURL, fmt.Sprintf("repos/%s", r.FullName)) {
 		err = errors.New("Not a Repo: " + r.HTMLURL)
+		log.Debug(err)
 		return
 	}
 	return
