@@ -34,7 +34,7 @@ const (
 	repoRegex = `\\s([a-zA-Z-]+/[a-zA-Z0-9-]+)?#([0-9]+)`
 )
 
-var testRefRegex = regexp.MustCompile("[Tt]est(ing|ed|s)?" + repoRegex)
+var testRefRegex = regexp.MustCompile("[Tt]est(ing|ed|s)?\\s([a-zA-Z-]+/[a-zA-Z0-9-]+)?#([0-9]+)")
 var refRepoRegex = regexp.MustCompile("\\s([a-zA-Z-]+/[a-zA-Z0-9-]+)?#([0-9]+)")
 
 // Get ... Get a pr from the api.
@@ -73,7 +73,8 @@ func (pr *PullRequest) Get() (err error) {
 
 // SetIssuesToTest ... Called when a pr is closed. Used to label any issues as testing/ to test
 func (pr *PullRequest) SetIssuesToTest() (err error) {
-	if pr.State != "closed" || !pr.Merged {
+	pr.Get()
+	if pr.State != "closed" && pr.Merged {
 		return
 	}
 	matches := testRefRegex.FindAllStringSubmatch(" "+pr.Body, 200)
@@ -81,6 +82,7 @@ func (pr *PullRequest) SetIssuesToTest() (err error) {
 	log.Debugln(matches)
 	issuesTOUpdate := make(map[string]Issue)
 	for _, x := range matches {
+		log.Debugln("Found : ", len(x), " In: ", x)
 		if x[2] == "" {
 			x[2] = pr.Base.Repo.FullName
 		}

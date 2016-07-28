@@ -150,7 +150,7 @@ func newLogger() *logger {
 		warn:  stdlog.New(os.Stdout, color.New(color.FgHiYellow).SprintFunc()("Warn: "), flag),
 		err:   stdlog.New(os.Stderr, color.New(color.FgRed).SprintFunc()("Error: "), flag),
 		fatal: stdlog.New(os.Stderr, color.New(color.FgHiRed).SprintFunc()("Fatal: "), flag),
-		Level: Info,
+		Level: Debug,
 	}
 	return aLogger
 }
